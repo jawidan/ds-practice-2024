@@ -19,6 +19,7 @@ import fraud_detection_pb2_grpc as fraud_detection_grpc
 
 import transaction_verification_pb2 as transaction_verification
 import transaction_verification_pb2_grpc as transaction_verification_grpc
+from flask import jsonify
 
 import grpc
 
@@ -52,10 +53,23 @@ def verify_transaction(order):
                 termsAndConditionsAccepted=order.get("termsAndConditionsAccepted"),
             )
         )
+    
+    # Check if the response has an 'errors' attribute and collect errors, if any.
+    # This assumes 'errors' could be a list or repeated field in your response.
+    # Adjust the handling if 'errors' is structured differently.
+    errors = getattr(response, "errors", None)
+    if errors is None:  # If there's no errors attribute or it's empty
+        errors_list = []
+    elif isinstance(errors, str):  # If errors is just a single string
+        errors_list = [errors]
+    else:  # Assuming errors is a list or repeated field
+        errors_list = list(errors)
+    
     return {
-        "verification": response.verification,
-        # "errors": response.errors
+        "verification": str(response.verification),
+        "errors": errors_list,  # Include the errors in the response
     }
+
 
 
 # Import Flask.
@@ -92,7 +106,24 @@ def checkout():
     order = request.json
 
     transaction_verification_response = verify_transaction(order)
-    print("Transaction Verification $$ ",transaction_verification_response)
+    print("transaction reqeust: " , order)
+    print("Transaction Verification 45$ ",transaction_verification_response)
+
+
+    return transaction_verification_response
+    # return transaction_verification_response.jsonify()
+
+
+if __name__ == "__main__":
+    # Run the app in debug mode to enable hot reloading.
+    # This is useful for development.
+    # The default port is 5000.
+    app.run(host="0.0.0.0")
+
+
+
+
+
 
     # Dummy
     # order_status_response = {
@@ -104,16 +135,3 @@ def checkout():
     #         {"bookId": "456", "title": "Dummy Book 2", "author": "Author 2"},
     #     ],
     # }
-
-    # order_status_response = {
-    #     "verification": 'True'
-    # }
-
-    return transaction_verification_response.jsonify()
-
-
-if __name__ == "__main__":
-    # Run the app in debug mode to enable hot reloading.
-    # This is useful for development.
-    # The default port is 5000.
-    app.run(host="0.0.0.0")

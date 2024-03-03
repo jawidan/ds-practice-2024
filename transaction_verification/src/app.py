@@ -11,39 +11,62 @@ import transaction_verification_pb2_grpc as transaction_verification_grpc
 
 import grpc
 from concurrent import futures
+from datetime import datetime
+
 
 
 # Create a class to define the server functions, derived from
 # transaction_verification_pb2_grpc.TransactionVerificationServicer
-class TransactionVerification(
-    transaction_verification_grpc.TransactionVerificationServiceServicer
-):
-    # Create an RPC function to say hello
+
+class TransactionVerification(transaction_verification_grpc.TransactionVerificationServiceServicer):
     def VerifyTransaction(self, request, context):
         response = transaction_verification.TransactionVerificationResponse()
 
-        print("Handle transaction")
-        print(request.user)
-        # check if the list of items is not empty,
-        # the required user data is all filled-in, and the credit card format is correct
-        # add some validation error messages
-        response.verification = True
+        response.verification = True  # Assume true, set to false on any validation failure
 
-        if request.items is None or len(request.items) == 0:
+        # Items check
+        if not request.items:
             response.verification = False
+            response.errors.append("The list of items is empty.")
 
-        if request.user is None or not request.user.name or not request.user.contact:
+        # User data check
+        if not request.user or not request.user.name or not request.user.contact:
             response.verification = False
+            response.errors.append("Missing required user data.")
 
-        if (
-            request.creditCard is None
-            or not request.creditCard.number
-            or not request.creditCard.expirationDate
-            or not request.creditCard.cvv
-        ):
+        # Credit Card checks
+        if not request.creditCard:
             response.verification = False
+            response.errors.append("Credit card information is missing.")
+        else:
+            # Credit Card number length check
+            if len(request.creditCard.number) != 16:
+                response.verification = False
+                response.errors.append("Credit card number must be 16 digits long.")
+
+            # CVV length check
+            if len(request.creditCard.cvv) != 3:
+                response.verification = False
+                response.errors.append("CVV must be 3 characters long.")
+
+            # Expiration Date validity check
+            if request.creditCard.expirationDate:
+                if not self.is_expiration_date_valid(request.creditCard.expirationDate):
+                    response.verification = False
+                    response.errors.append("Credit card expiration date is invalid or has expired.")
 
         return response
+
+    def is_expiration_date_valid(self, expiration_date_str):
+        """Check if the expiration date (format MM/YY) has not passed."""
+        try:
+            expiration_date = datetime.strptime(expiration_date_str, "%m/%Y")
+            current_date = datetime.now()
+            return expiration_date >= current_date
+        except ValueError:
+            # If there's an error parsing the date, consider it invalid
+            return False
+
 
 
 def serve():
