@@ -7,7 +7,7 @@ const ConfirmationPage: React.FC = () => {
 
     return (
         <div className="container mt-5">
-            <h1>Order Confirmation</h1>
+            <h1>Order Status : {orderStatusResponse.verification}</h1>
             <h2>Order ID: {orderStatusResponse.orderId}</h2>
             <p>Status: {orderStatusResponse.status}</p>
             {orderStatusResponse.suggestedBooks && orderStatusResponse.suggestedBooks.length > 0 &&

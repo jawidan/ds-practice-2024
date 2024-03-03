@@ -30,22 +30,22 @@ const CheckoutPage: React.FC = () => {
     const book = location.state;
 
     const [formData, setFormData] = useState<CheckoutForm>({
-        userName: '',
-        userContact: '',
-        creditCardNumber: '',
-        creditCardExpirationDate: '',
-        creditCardCVV: '',
-        userComment: '',
-        discountCode: '',
-        shippingMethod: '',
-        giftMessage: '',
-        billingAddressStreet: '',
-        billingAddressCity: '',
-        billingAddressState: '',
-        billingAddressZip: '',
-        billingAddressCountry: 'Select a country',
+        userName: 'aaa',
+        userContact: 'aaa',
+        creditCardNumber: '1234556',
+        creditCardExpirationDate: '11/22',
+        creditCardCVV: '123',
+        userComment: 'vvv',
+        discountCode: 'bbbb',
+        shippingMethod: 'bbbb',
+        giftMessage: 'gggg',
+        billingAddressStreet: 'rrrr',
+        billingAddressCity: 'nnnn',
+        billingAddressState: 'ffff',
+        billingAddressZip: 'ffff',
+        billingAddressCountry: 'Estonia',
         giftWrapping: false,
-        termsAndConditionsAccepted: false
+        termsAndConditionsAccepted: true
     });    
 
     const handleInputChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -61,7 +61,7 @@ const CheckoutPage: React.FC = () => {
 
         try {
 
-            const response = await axios.post('http://0.0.0.0:8081/checkout', {
+            const response = await axios.post('http://localhost:8081/checkout', {
                 user: {
                     name: formData.userName,
                     contact: formData.userContact,
