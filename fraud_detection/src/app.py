@@ -13,32 +13,57 @@ import fraud_detection_pb2_grpc as fraud_detection_grpc
 import grpc
 from concurrent import futures
 
+
+import fraud_detection_pb2 as fraud_detection
+import fraud_detection_pb2_grpc as fraud_detection_grpc
+
+import grpc
+from concurrent import futures
+
+class FraudDetectionService(fraud_detection_grpc.FraudDetectionServiceServicer):
+    def DetectFraud(self, request, context):
+        # Initialize the response
+        response = fraud_detection.FraudDetectionResponse()
+
+        # Implement your fraud detection logic here
+        # Example: Simple logic based on a specific condition
+        if request.billingAddress.street == request.billingAddress.city == request.billingAddress.state:
+            response.isFraudulent = True
+            response.reason = "Billing address's street, city, and state are identical, which is suspicious."
+        else:
+            response.isFraudulent = False
+            response.reason = "No fraud detected based on address comparison."
+
+        # You can add more sophisticated checks here
+        # For instance, check for unusual patterns in credit card usage, large transactions, etc.
+
+        return response
+    
+
+    
 # Create a class to define the server functions, derived from
 # fraud_detection_pb2_grpc.HelloServiceServicer
-class HelloService(fraud_detection_grpc.HelloServiceServicer):
-    # Create an RPC function to say hello
-    def SayHello(self, request, context):
-        # Create a HelloResponse object
-        response = fraud_detection.HelloResponse()
-        # Set the greeting field of the response object
-        response.greeting = "Hello, " + request.name
-        # Print the greeting message
-        print(response.greeting)
-        # Return the response object
-        return response
+# class HelloService(fraud_detection_grpc.HelloServiceServicer):
+#     # Create an RPC function to say hello
+#     def SayHello(self, request, context):
+#         # Create a HelloResponse object
+#         response = fraud_detection.HelloResponse()
+#         # Set the greeting field of the response object
+#         response.greeting = "Hello, " + request.name
+#         # Print the greeting message
+#         print(response.greeting)
+#         # Return the response object
+#         return response
+
+
 
 def serve():
-    # Create a gRPC server
-    server = grpc.server(futures.ThreadPoolExecutor())
-    # Add HelloService
-    fraud_detection_grpc.add_HelloServiceServicer_to_server(HelloService(), server)
-    # Listen on port 50051
-    port = "50051"
-    server.add_insecure_port("[::]:" + port)
-    # Start the server
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    fraud_detection_grpc.add_FraudDetectionServiceServicer_to_server(FraudDetectionService(), server)
+    # Adjust the port number as needed
+    server.add_insecure_port('[::]:50051')
     server.start()
-    print("Server started. Listening on port 50051.")
-    # Keep thread alive
+    print("Fraud Detection Service started. Listening on port 50051.")
     server.wait_for_termination()
 
 if __name__ == '__main__':

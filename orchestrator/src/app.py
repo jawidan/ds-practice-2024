@@ -1,5 +1,8 @@
 import sys
 import os
+from threading import Thread
+from queue import Queue
+
 
 # This set of lines are needed to import the gRPC stubs.
 # The path of the stubs is relative to the current file, or absolute inside the container.
@@ -34,11 +37,35 @@ def greet(name="you"):
     return response.greeting
 
 
-def detect_fraud(name="you"):
+def detect_fraud(order):
+
     with grpc.insecure_channel("fraud_detection:50051") as channel:
-        stub = fraud_detection_grpc.HelloServiceStub(channel)
-        response = stub.SayHello(fraud_detection.HelloRequest(name=name))
-    return response.greeting
+        stub = fraud_detection_grpc.FraudDetectionServiceStub(channel)
+        request = fraud_detection.FraudDetectionRequest(
+            user=fraud_detection.User(
+                name=order.get("user", {}).get("name", ""),
+                contact=order.get("user", {}).get("contact", "")
+            ),
+            creditCard=fraud_detection.CreditCard(
+                number=order.get("creditCard", {}).get("number", ""),
+                expirationDate=order.get("creditCard", {}).get("expirationDate", ""),
+                cvv=order.get("creditCard", {}).get("cvv", "")
+            ),
+            billingAddress=fraud_detection.Address(
+                street=order.get("billingAddress", {}).get("street", ""),
+                city=order.get("billingAddress", {}).get("city", ""),
+                state=order.get("billingAddress", {}).get("state", ""),
+                zip=order.get("billingAddress", {}).get("zip", ""),
+                country=order.get("billingAddress", {}).get("country", "")
+            )            
+        )                
+        response = stub.DetectFraud(request)
+        
+    return {
+        "isFraudulent": response.isFraudulent,
+        "reason": response.reason
+    }
+
 
 
 def verify_transaction(order):
@@ -55,8 +82,7 @@ def verify_transaction(order):
         )
     
     # Check if the response has an 'errors' attribute and collect errors, if any.
-    # This assumes 'errors' could be a list or repeated field in your response.
-    # Adjust the handling if 'errors' is structured differently.
+
     errors = getattr(response, "errors", None)
     if errors is None:  # If there's no errors attribute or it's empty
         errors_list = []
@@ -99,19 +125,43 @@ def index():
 
 @app.route("/checkout", methods=["POST"])
 def checkout():
-    """
-    Responds with a JSON object containing the order ID, status, and suggested books.
-    """
-    # Print request object data
     order = request.json
+    print("Transaction request:", order)
 
+    # Existing transaction verification logic
     transaction_verification_response = verify_transaction(order)
-    print("transaction reqeust: " , order)
-    print("Transaction Verification 45$ ",transaction_verification_response)
+    print("Transaction Verification:", transaction_verification_response)
 
+    # New fraud detection logic
+    fraud_detection_response = detect_fraud(order)
+    print("Fraud Detection:", fraud_detection_response)
 
-    return transaction_verification_response
-    # return transaction_verification_response.jsonify()
+    order_status_response = {
+        "orderId": "12345",
+        "status": "Order Approved",
+        "verification": "True",
+        "suggestedBooks": [
+            {"bookId": "123", "title": "Dummy Book 1", "author": "Author 1"},
+            {"bookId": "456", "title": "Dummy Book 2", "author": "Author 2"},
+        ],
+    }
+
+    # return order_status_response
+
+    if fraud_detection_response["isFraudulent"]:
+        # Handling fraudulent transactions
+        return jsonify({
+            "verification": "False",
+            "errors": [fraud_detection_response["reason"]],
+            "isFraudulent": True
+        })
+    else:
+        # Continue with your order processing if no fraud detected
+        return jsonify({
+            **transaction_verification_response,
+            "isFraudulent": False,
+            "fraudReason": ""
+        }), 200
 
 
 if __name__ == "__main__":

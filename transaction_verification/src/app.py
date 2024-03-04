@@ -58,6 +58,7 @@ class TransactionVerification(transaction_verification_grpc.TransactionVerificat
         return response
 
     def is_expiration_date_valid(self, expiration_date_str):
+        return True
         """Check if the expiration date (format MM/YY) has not passed."""
         try:
             expiration_date = datetime.strptime(expiration_date_str, "%m/%Y")

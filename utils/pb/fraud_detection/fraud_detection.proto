@@ -1,15 +1,44 @@
 syntax = "proto3";
 
-package hello;
+package fraud_detection;
 
-service HelloService {
-    rpc SayHello (HelloRequest) returns (HelloResponse);
+// Define a message for the transaction request
+message FraudDetectionRequest {
+    User user = 1;
+    CreditCard creditCard = 2;
+    Address billingAddress = 3;
+    // Add more fields here as needed for expanded logic
 }
 
-message HelloRequest {
+// Define a message for the user
+message User {
     string name = 1;
+    string contact = 2;
 }
 
-message HelloResponse {
-    string greeting = 1;
+// Define a message for the credit card information
+message CreditCard {
+    string number = 1;
+    string expirationDate = 2; // Expected format MM/YY
+    string cvv = 3;
+}
+
+// Define a message for the address
+message Address {
+    string street = 1;
+    string city = 2;
+    string state = 3;
+    string zip = 4;
+    string country = 5;
+}
+
+// Define a message for the fraud detection response
+message FraudDetectionResponse {
+    bool isFraudulent = 1;
+    string reason = 2; // Optional reason for the decision
+}
+
+// Define the service with a method for fraud detection
+service FraudDetectionService {
+    rpc DetectFraud (FraudDetectionRequest) returns (FraudDetectionResponse);
 }

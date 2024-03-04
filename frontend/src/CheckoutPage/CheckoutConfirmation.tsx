@@ -5,15 +5,19 @@ const ConfirmationPage: React.FC = () => {
     const location = useLocation();
     const { orderStatusResponse } = location.state as any;
 
-    // Convert verification status to a readable format
+    // Simplifying the verification status check
     const verificationStatus = orderStatusResponse.verification === 'True' ? 'Success' : 'Failed';
+    const isFraudulent = orderStatusResponse.isFraudulent;
 
     return (
         <div className="container mt-5">
-            <h1>Order Status: {verificationStatus}</h1>
-            {orderStatusResponse.orderId && <h2>Order ID: {orderStatusResponse.orderId}</h2>}
-            {orderStatusResponse.status && <p>Status: {orderStatusResponse.status}</p>}
-            {verificationStatus === 'Failed' && orderStatusResponse.errors && orderStatusResponse.errors.length > 0 &&
+            <h1>Order Confirmation</h1>
+            <h2>Order ID: {orderStatusResponse.orderId}</h2>
+            {/* Update to reflect fraud detection and verification status */}
+            <p>Status: {orderStatusResponse.status}{isFraudulent ? " - Fraud Detected" : ""}</p>
+            {verificationStatus === 'Failed' && <p>Verification Status: {verificationStatus}</p>}
+            {/* Display verification errors if any */}
+            {orderStatusResponse.errors && orderStatusResponse.errors.length > 0 && (
                 <div>
                     <h3>Verification Errors:</h3>
                     <ul>
@@ -22,8 +26,16 @@ const ConfirmationPage: React.FC = () => {
                         ))}
                     </ul>
                 </div>
-            }
-            {orderStatusResponse.suggestedBooks && orderStatusResponse.suggestedBooks.length > 0 &&
+            )}
+            {/* Optionally display fraud reason */}
+            {isFraudulent && (
+                <div>
+                    <h3>Fraud Reason:</h3>
+                    <p>{orderStatusResponse.fraudReason}</p>
+                </div>
+            )}
+            {/* Suggested books */}
+            {orderStatusResponse.suggestedBooks && orderStatusResponse.suggestedBooks.length > 0 && (
                 <div>
                     <h3>Suggested Books</h3>
                     <ul>
@@ -36,7 +48,7 @@ const ConfirmationPage: React.FC = () => {
                         ))}
                     </ul>
                 </div>
-            }
+            )}
         </div>
     );
 };
