@@ -37,13 +37,11 @@ const ConfirmationPage: React.FC = () => {
             {/* Suggested books */}
             {orderStatusResponse.suggestedBooks && orderStatusResponse.suggestedBooks.length > 0 && (
                 <div>
-                    <h3>Suggested Books</h3>
+                    <h3>Suggested Book For Your Order</h3>
                     <ul>
                         {orderStatusResponse.suggestedBooks.map((book: any, index: number) => (
                             <li key={index}>
-                                <h4>{book.title}</h4>
-                                <p>Book ID: {book.bookId}<br />
-                                Author: {book.author}</p>
+                                <h4>{book.title}</h4>                                
                             </li>
                         ))}
                     </ul>

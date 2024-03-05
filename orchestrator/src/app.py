@@ -37,9 +37,7 @@ import grpc
 def greet(name="you"):
     # Establish a connection with the fraud-detection gRPC service.
     with grpc.insecure_channel("fraud_detection:50051") as channel:
-        # Create a stub object.
         stub = fraud_detection_grpc.HelloServiceStub(channel)
-        # Call the service through the stub object.
         response = stub.SayHello(fraud_detection.HelloRequest(name=name))
     return response.greeting
 
@@ -52,9 +50,9 @@ def suggestBooks(order):
         
     return {
         "suggestedBooks":[
-            {"bookId": "345", 
+            {
             "title": response.name, 
-            "author": "Author Javidan"}
+            }
         ]
     }
 
