@@ -12,9 +12,12 @@ utils_path = os.path.abspath(os.path.join(FILE, "../../../utils/pb/fraud_detecti
 transaction_verification_utils_path = os.path.abspath(
     os.path.join(FILE, "../../../utils/pb/transaction_verification")
 )
+suggestions_path = os.path.abspath(os.path.join(FILE, "../../../utils/pb/suggestions"))
+
 
 sys.path.insert(0, utils_path)
 sys.path.insert(1, transaction_verification_utils_path)
+sys.path.insert(2, suggestions_path)
 
 
 import fraud_detection_pb2 as fraud_detection
@@ -22,6 +25,10 @@ import fraud_detection_pb2_grpc as fraud_detection_grpc
 
 import transaction_verification_pb2 as transaction_verification
 import transaction_verification_pb2_grpc as transaction_verification_grpc
+
+import suggestions_pb2 as suggestions
+import suggestions_pb2_grpc as suggestions_grpc
+
 from flask import jsonify
 
 import grpc
@@ -35,6 +42,21 @@ def greet(name="you"):
         # Call the service through the stub object.
         response = stub.SayHello(fraud_detection.HelloRequest(name=name))
     return response.greeting
+
+
+def suggestBooks(order):
+    with grpc.insecure_channel("suggestions:50053") as channel:
+        stub = suggestions_grpc.BookSuggestionServiceStub(channel) 
+        request = suggestions.BookRequest(name = order.get("items", {})[0].get("name", ""))
+        response = stub.SuggestBooks(request)
+        
+    return {
+        "suggestedBooks":[
+            {"bookId": "345", 
+            "title": response.name, 
+            "author": "Author Javidan"}
+        ]
+    }
 
 
 def detect_fraud(order):
@@ -98,10 +120,6 @@ def verify_transaction(order):
 
 
 
-# Import Flask.
-# Flask is a web framework for Python.
-# It allows you to build a web application quickly.
-# For more information, see https://flask.palletsprojects.com/en/latest/
 from flask import Flask, request
 from flask_cors import CORS
 
@@ -136,7 +154,12 @@ def checkout():
     fraud_detection_response = detect_fraud(order)
     print("Fraud Detection:", fraud_detection_response)
 
-    order_status_response = {
+    suggestBooks_response = suggestBooks(order)
+    print("Suggest Books:", suggestBooks_response)
+
+    return suggestBooks_response
+
+    return {
         "orderId": "12345",
         "status": "Order Approved",
         "verification": "True",
