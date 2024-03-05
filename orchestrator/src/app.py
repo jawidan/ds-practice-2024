@@ -144,45 +144,70 @@ def checkout():
     order = request.json
     print("Transaction request:", order)
 
-    # Existing transaction verification logic
-    transaction_verification_response = verify_transaction(order)
+    # Initialize queues for communication between threads
+    fraud_queue = Queue()
+    verification_queue = Queue()
+
+    # Define functions to be executed in separate threads
+    def detect_fraud_thread():
+        fraud_response = detect_fraud(order)
+        fraud_queue.put(fraud_response)
+
+    def verify_transaction_thread():
+        verification_response = verify_transaction(order)
+        verification_queue.put(verification_response)
+
+    # Start threads for fraud detection and transaction verification
+    fraud_thread = Thread(target=detect_fraud_thread)
+    verification_thread = Thread(target=verify_transaction_thread)
+
+    fraud_thread.start()
+    verification_thread.start()
+
+    # Wait for both threads to finish
+    fraud_thread.join()
+    verification_thread.join()
+
+    # Retrieve results from the queues
+    fraud_detection_response = fraud_queue.get()
+    transaction_verification_response = verification_queue.get()
+
+    print("Fraud Detection:", fraud_detection_response)
     print("Transaction Verification:", transaction_verification_response)
 
-    # New fraud detection logic
-    fraud_detection_response = detect_fraud(order)
-    print("Fraud Detection:", fraud_detection_response)
-
-    suggestBooks_response = suggestBooks(order)
-    print("Suggest Books:", suggestBooks_response)
-
-    return suggestBooks_response
-
-    return {
-        "orderId": "12345",
-        "status": "Order Approved",
-        "verification": "True",
-        "suggestedBooks": [
-            {"bookId": "123", "title": "Dummy Book 1", "author": "Author 1"},
-            {"bookId": "456", "title": "Dummy Book 2", "author": "Author 2"},
-        ],
-    }
-
-    # return order_status_response
-
+    # Check if fraud detected or transaction not verified
     if fraud_detection_response["isFraudulent"]:
         # Handling fraudulent transactions
         return jsonify({
             "verification": "False",
+            "orderStatus": "Fraudulent Transaction",
             "errors": [fraud_detection_response["reason"]],
             "isFraudulent": True
         })
-    else:
-        # Continue with your order processing if no fraud detected
+
+    if transaction_verification_response["verification"] != "True":
+        # Handling failed transaction verification
         return jsonify({
-            **transaction_verification_response,
-            "isFraudulent": False,
-            "fraudReason": ""
-        }), 200
+            "verification": "False",
+            "orderStatus": "Transaction not verified",
+            "errors": transaction_verification_response["errors"],
+            "isFraudulent": False
+        })
+
+    # Both fraud detection and transaction verification passed
+    # Run suggested books service
+    suggested_books_response = suggestBooks(order)
+    print("Suggested Books:", suggested_books_response)
+
+    # Return order verified with orderID and suggested books
+    return jsonify({
+        "verification": "True",
+        "orderID": "2345",  # Placeholder for order ID
+        "orderStatus": "Approved",
+        "suggestedBooks": suggested_books_response["suggestedBooks"],
+        "isFraudulent": False,
+        "fraudReason": ""
+    }), 200
 
 
 if __name__ == "__main__":

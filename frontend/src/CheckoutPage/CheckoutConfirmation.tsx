@@ -5,48 +5,53 @@ const ConfirmationPage: React.FC = () => {
     const location = useLocation();
     const { orderStatusResponse } = location.state as any;
 
-    // Simplifying the verification status check
-    const verificationStatus = orderStatusResponse.verification === 'True' ? 'Success' : 'Failed';
+    // Determine status and fraud detection
+    const status = orderStatusResponse.verification === 'True' ? 'Order Verified' : 'Order Failed';
     const isFraudulent = orderStatusResponse.isFraudulent;
 
     return (
         <div className="container mt-5">
-            {/* <h1>Order Confirmation</h1>
-            <h2>Order ID: {orderStatusResponse.orderId}</h2> */}
-            {/* Update to reflect fraud detection and verification status */}
-            <h2>Status: {orderStatusResponse.status}{isFraudulent ? " Fraud Detected" : ""}</h2>
-            {verificationStatus === 'Failed' && <h1>Verification Status: {verificationStatus}</h1>}
-            {/* Display verification errors if any */}
-            {orderStatusResponse.errors && orderStatusResponse.errors.length > 0 && (
-                <div>
-                    <h3>Verification Errors:</h3>
-                    <ul>
-                        {orderStatusResponse.errors.map((error: string, index: number) => (
-                            <li key={index}>{error}</li>
-                        ))}
-                    </ul>
+            <div className="card">
+                <div className="card-body">
+                    <h2 className="card-title">Order Status</h2>
+                    <p className={`status ${orderStatusResponse.verification.toLowerCase()}`}>{status}</p>
+                    {orderStatusResponse.verification === 'False' && (
+                        <div>
+                            <h3>Errors:</h3>
+                            <ul className="error-list">
+                                {orderStatusResponse.errors.map((error: string, index: number) => (
+                                    <li key={index} className="error-item">{error}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+                    {orderStatusResponse.verification === 'True' && (
+                        <div>
+                            <h3>Order ID: <span className="order-id">{orderStatusResponse.orderID}</span></h3>
+                            <h3>Order Status: <span className="order-status">{orderStatusResponse.orderStatus}</span></h3>
+                            {orderStatusResponse.suggestedBooks && orderStatusResponse.suggestedBooks.length > 0 && (
+                                <div>
+                                    <h3>Suggested Books For Your Order:</h3>
+                                    <ul className="suggested-books">
+                                        {orderStatusResponse.suggestedBooks.map((book: any, index: number) => (
+                                            <li key={index} className="suggested-book">
+                                                <p>{book.title}</p>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                    {/* Optionally display fraud reason */}
+                    {/* {isFraudulent && (
+                        <div>
+                            <h3>Fraud Reason:</h3>
+                            <p>{orderStatusResponse.fraudReason}</p>
+                        </div>
+                    )} */}
                 </div>
-            )}
-            {/* Optionally display fraud reason */}
-            {/* {isFraudulent && (
-                <div>
-                    <h3>Fraud Reason:</h3>
-                    <p>{orderStatusResponse.fraudReason}</p>
-                </div>
-            )} */}
-            {/* Suggested books */}
-            {orderStatusResponse.suggestedBooks && orderStatusResponse.suggestedBooks.length > 0 && (
-                <div>
-                    <h3>Suggested Book For Your Order</h3>
-                    <ul>
-                        {orderStatusResponse.suggestedBooks.map((book: any, index: number) => (
-                            <li key={index}>
-                                <h4>{book.title}</h4>                                
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-            )}
+            </div>
         </div>
     );
 };
