@@ -11,11 +11,11 @@ const ConfirmationPage: React.FC = () => {
 
     return (
         <div className="container mt-5">
-            <h1>Order Confirmation</h1>
-            <h2>Order ID: {orderStatusResponse.orderId}</h2>
+            {/* <h1>Order Confirmation</h1>
+            <h2>Order ID: {orderStatusResponse.orderId}</h2> */}
             {/* Update to reflect fraud detection and verification status */}
-            <p>Status: {orderStatusResponse.status}{isFraudulent ? " - Fraud Detected" : ""}</p>
-            {verificationStatus === 'Failed' && <p>Verification Status: {verificationStatus}</p>}
+            <h2>Status: {orderStatusResponse.status}{isFraudulent ? " Fraud Detected" : ""}</h2>
+            {verificationStatus === 'Failed' && <h1>Verification Status: {verificationStatus}</h1>}
             {/* Display verification errors if any */}
             {orderStatusResponse.errors && orderStatusResponse.errors.length > 0 && (
                 <div>
@@ -28,12 +28,12 @@ const ConfirmationPage: React.FC = () => {
                 </div>
             )}
             {/* Optionally display fraud reason */}
-            {isFraudulent && (
+            {/* {isFraudulent && (
                 <div>
                     <h3>Fraud Reason:</h3>
                     <p>{orderStatusResponse.fraudReason}</p>
                 </div>
-            )}
+            )} */}
             {/* Suggested books */}
             {orderStatusResponse.suggestedBooks && orderStatusResponse.suggestedBooks.length > 0 && (
                 <div>
