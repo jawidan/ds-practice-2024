@@ -22,34 +22,29 @@ class TransactionVerification(transaction_verification_grpc.TransactionVerificat
     def VerifyTransaction(self, request, context):
         response = transaction_verification.TransactionVerificationResponse()
 
-        response.verification = True  # Assume true, set to false on any validation failure
+        response.verification = True  
 
-        # Items check
         if not request.items:
             response.verification = False
             response.errors.append("The list of items is empty.")
 
-        # User data check
         if not request.user or not request.user.name or not request.user.contact:
             response.verification = False
             response.errors.append("Missing required user data.")
 
-        # Credit Card checks
         if not request.creditCard:
             response.verification = False
             response.errors.append("Credit card information is missing.")
         else:
-            # Credit Card number length check
+
             if len(request.creditCard.number) != 16:
                 response.verification = False
                 response.errors.append("Credit card number must be 16 digits long.")
 
-            # CVV length check
             if len(request.creditCard.cvv) != 3:
                 response.verification = False
                 response.errors.append("CVV must be 3 characters long.")
 
-            # Expiration Date validity check
             if request.creditCard.expirationDate:
                 if not self.is_expiration_date_valid(request.creditCard.expirationDate):
                     response.verification = False

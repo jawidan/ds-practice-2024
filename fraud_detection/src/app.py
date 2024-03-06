@@ -22,20 +22,15 @@ from concurrent import futures
 
 class FraudDetectionService(fraud_detection_grpc.FraudDetectionServiceServicer):
     def DetectFraud(self, request, context):
-        # Initialize the response
         response = fraud_detection.FraudDetectionResponse()
 
-        # Implement your fraud detection logic here
-        # Example: Simple logic based on a specific condition
         if request.billingAddress.street == request.billingAddress.city == request.billingAddress.state:
             response.isFraudulent = True
             response.reason = "Billing address's street, city, and state are identical, which is suspicious."
         else:
             response.isFraudulent = False
-            response.reason = "No fraud detected based on address comparison."
+            response.reason = "No fraud detected "
 
-        # You can add more sophisticated checks here
-        # For instance, check for unusual patterns in credit card usage, large transactions, etc.
 
         return response
     

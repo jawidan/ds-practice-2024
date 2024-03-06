@@ -11,6 +11,7 @@ import suggestions_pb2_grpc as suggestions_grpc
 
 import grpc
 from concurrent import futures
+from openai import OpenAI
 
 
 class BookSuggestionService(suggestions_grpc.BookSuggestionServiceServicer):
@@ -18,23 +19,15 @@ class BookSuggestionService(suggestions_grpc.BookSuggestionServiceServicer):
     def SuggestBooks(self, request, context):
         # Example of handling request based on 'name' parameter in 'items'
         # print("REEEEE",request)
-        
-        if 'python' in request.name.lower():
-            response = suggestions.BookResponse(name="Think Python: An Introduction to Software Design")
-            return response
-        elif 'javascript' in request.name.lower():
-            response = suggestions.BookResponse(name="JavaScript: The Definitive Guide: Master the World's Most-Used Programming Language")
-            return response
-        elif "design patterns" in request.name.lower():
-            response = suggestions.BookResponse(name="Hands-On Design Patterns with C++: Solve Common C++ Problems with Modern Design Patterns and Build Robust Applications")
-            return response
-        elif "domain driven" in request.name.lower():
-            response = suggestions.BookResponse(name="Applying Domain-driven Design and Patterns: With Examples in C# and .NET")
-            return response
+        client = OpenAI(api_key="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")
 
-        # Default response if no specific language found in request items
-        response = suggestions.BookResponse(name="No specific book suggestion found")
-        return response
+        gptresponse = client.completions.create(
+            model="gpt-3.5-turbo-instruct",
+            prompt="Suggest books which is relevant to " + request.name + ". And only respond the book name and author. thats it",
+        )   
+
+        return suggestions.BookResponse(name=gptresponse.choices[0].text)
+       
         
 
 def serve():

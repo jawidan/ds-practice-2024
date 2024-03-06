@@ -2,70 +2,60 @@ import sys
 import os
 from threading import Thread
 from queue import Queue
+from datetime import datetime
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+import grpc
+
+# Function to append log messages to logs.txt
+def log_message(message):
+    """Append a log message to logs.txt file with timestamp."""
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    log_entry = f"{timestamp} - {message}\n"
+    print("AAAAAAAAA")  # Assuming this is for debugging purposes.
+    # Ensure the logs directory exists
+    os.makedirs(os.path.dirname('logs/'), exist_ok=True)
+    
+    with open('logs/logs.txt', 'a') as log_file:
+        log_file.write(log_entry)
 
 
-# This set of lines are needed to import the gRPC stubs.
-# The path of the stubs is relative to the current file, or absolute inside the container.
-# Change these lines only if strictly needed.
+# gRPC stubs import setup
 FILE = __file__ if "__file__" in globals() else os.getenv("PYTHONFILE", "")
 utils_path = os.path.abspath(os.path.join(FILE, "../../../utils/pb/fraud_detection"))
-transaction_verification_utils_path = os.path.abspath(
-    os.path.join(FILE, "../../../utils/pb/transaction_verification")
-)
+transaction_verification_utils_path = os.path.abspath(os.path.join(FILE, "../../../utils/pb/transaction_verification"))
 suggestions_path = os.path.abspath(os.path.join(FILE, "../../../utils/pb/suggestions"))
-
 
 sys.path.insert(0, utils_path)
 sys.path.insert(1, transaction_verification_utils_path)
 sys.path.insert(2, suggestions_path)
 
-
 import fraud_detection_pb2 as fraud_detection
 import fraud_detection_pb2_grpc as fraud_detection_grpc
-
 import transaction_verification_pb2 as transaction_verification
 import transaction_verification_pb2_grpc as transaction_verification_grpc
-
 import suggestions_pb2 as suggestions
 import suggestions_pb2_grpc as suggestions_grpc
 
-from flask import jsonify
-
-import grpc
-
-
 def greet(name="you"):
-    # Establish a connection with the fraud-detection gRPC service.
     with grpc.insecure_channel("fraud_detection:50051") as channel:
         stub = fraud_detection_grpc.HelloServiceStub(channel)
         response = stub.SayHello(fraud_detection.HelloRequest(name=name))
     return response.greeting
 
-
 def suggestBooks(order):
     with grpc.insecure_channel("suggestions:50053") as channel:
-        stub = suggestions_grpc.BookSuggestionServiceStub(channel) 
-        request = suggestions.BookRequest(name = order.get("items", {})[0].get("name", ""))
+        stub = suggestions_grpc.BookSuggestionServiceStub(channel)
+        request = suggestions.BookRequest(name=order.get("items", {})[0].get("name", ""))
         response = stub.SuggestBooks(request)
         
-    return {
-        "suggestedBooks":[
-            {
-            "title": response.name, 
-            }
-        ]
-    }
-
+    return {"suggestedBooks": [{"title": response.name}]}
 
 def detect_fraud(order):
-
     with grpc.insecure_channel("fraud_detection:50051") as channel:
         stub = fraud_detection_grpc.FraudDetectionServiceStub(channel)
         request = fraud_detection.FraudDetectionRequest(
-            user=fraud_detection.User(
-                name=order.get("user", {}).get("name", ""),
-                contact=order.get("user", {}).get("contact", "")
-            ),
+            user=fraud_detection.User(name=order.get("user", {}).get("name", ""), contact=order.get("user", {}).get("contact", "")),
             creditCard=fraud_detection.CreditCard(
                 number=order.get("creditCard", {}).get("number", ""),
                 expirationDate=order.get("creditCard", {}).get("expirationDate", ""),
@@ -77,16 +67,11 @@ def detect_fraud(order):
                 state=order.get("billingAddress", {}).get("state", ""),
                 zip=order.get("billingAddress", {}).get("zip", ""),
                 country=order.get("billingAddress", {}).get("country", "")
-            )            
-        )                
+            )
+        )
         response = stub.DetectFraud(request)
         
-    return {
-        "isFraudulent": response.isFraudulent,
-        "reason": response.reason
-    }
-
-
+    return {"isFraudulent": response.isFraudulent, "reason": response.reason}
 
 def verify_transaction(order):
     with grpc.insecure_channel("transaction_verification:50052") as channel:
@@ -101,54 +86,28 @@ def verify_transaction(order):
             )
         )
     
-    # Check if the response has an 'errors' attribute and collect errors, if any.
-
     errors = getattr(response, "errors", None)
-    if errors is None:  # If there's no errors attribute or it's empty
-        errors_list = []
-    elif isinstance(errors, str):  # If errors is just a single string
-        errors_list = [errors]
-    else:  # Assuming errors is a list or repeated field
-        errors_list = list(errors)
+    errors_list = [errors] if isinstance(errors, str) else list(errors) if errors else []
     
-    return {
-        "verification": str(response.verification),
-        "errors": errors_list,  # Include the errors in the response
-    }
+    return {"verification": str(response.verification), "errors": errors_list}
 
-
-
-from flask import Flask, request
-from flask_cors import CORS
-
-# Create a simple Flask app.
 app = Flask(__name__)
-# Enable CORS for the app.
 CORS(app)
 
-
-# Define a GET endpoint.
 @app.route("/", methods=["GET"])
 def index():
-    """
-    Responds with 'Hello, [name]' when a GET request is made to '/' endpoint.
-    """
-    # Test the fraud-detection gRPC service.
+    log_message("Index page accessed")
     response = greet(name="orchestrator")
-    # Return the response.
     return response
-
 
 @app.route("/checkout", methods=["POST"])
 def checkout():
     order = request.json
-    print("Transaction request:", order)
-
-    # Initialize queues for communication between threads
+    log_message(f"Transaction request received: {order}")
+    
     fraud_queue = Queue()
     verification_queue = Queue()
 
-    # Define functions to be executed in separate threads
     def detect_fraud_thread():
         fraud_response = detect_fraud(order)
         fraud_queue.put(fraud_response)
@@ -157,27 +116,20 @@ def checkout():
         verification_response = verify_transaction(order)
         verification_queue.put(verification_response)
 
-    # Start threads for fraud detection and transaction verification
     fraud_thread = Thread(target=detect_fraud_thread)
     verification_thread = Thread(target=verify_transaction_thread)
 
     fraud_thread.start()
     verification_thread.start()
 
-    # Wait for both threads to finish
     fraud_thread.join()
     verification_thread.join()
 
-    # Retrieve results from the queues
     fraud_detection_response = fraud_queue.get()
     transaction_verification_response = verification_queue.get()
 
-    print("Fraud Detection:", fraud_detection_response)
-    print("Transaction Verification:", transaction_verification_response)
-
-    # Check if fraud detected or transaction not verified
     if fraud_detection_response["isFraudulent"]:
-        # Handling fraudulent transactions
+        log_message(f"Fraudulent transaction detected: {fraud_detection_response['reason']}")
         return jsonify({
             "verification": "False",
             "orderStatus": "Fraudulent Transaction",
@@ -186,7 +138,7 @@ def checkout():
         })
 
     if transaction_verification_response["verification"] != "True":
-        # Handling failed transaction verification
+        log_message(f"Transaction not verified: {transaction_verification_response['errors']}")
         return jsonify({
             "verification": "False",
             "orderStatus": "Transaction not verified",
@@ -194,28 +146,21 @@ def checkout():
             "isFraudulent": False
         })
 
-    # Both fraud detection and transaction verification passed
-    # Run suggested books service
     suggested_books_response = suggestBooks(order)
-    print("Suggested Books:", suggested_books_response)
+    log_message(f"Suggested Books: {suggested_books_response['suggestedBooks']}")
 
-    # Return order verified with orderID and suggested books
     return jsonify({
         "verification": "True",
-        "orderID": "2345",  # Placeholder for order ID
+        "orderID": "2345",
         "orderStatus": "Approved",
         "suggestedBooks": suggested_books_response["suggestedBooks"],
         "isFraudulent": False,
         "fraudReason": ""
     }), 200
 
-
 if __name__ == "__main__":
-    # Run the app in debug mode to enable hot reloading.
-    # This is useful for development.
-    # The default port is 5000.
-    app.run(host="0.0.0.0")
-
+    log_message("Starting the Flask application")
+    app.run(host="0.0.0.0", debug=True)
 
 
 
