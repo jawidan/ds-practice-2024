@@ -15,7 +15,7 @@ def log_message(message):
     print("AAAAAAAAA")  # Assuming this is for debugging purposes.
     # Ensure the logs directory exists
     os.makedirs(os.path.dirname('logs/'), exist_ok=True)
-    
+    print("log entry: ", log_entry)
     with open('logs/logs.txt', 'a') as log_file:
         log_file.write(log_entry)
 
