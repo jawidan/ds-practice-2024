@@ -30,7 +30,7 @@ export const responseData = {
         "copies": 15,
         "copiesAvailable": 15,
         "category": "Web Development",
-        "img": "https://media.licdn.com/dms/image/D4E12AQELjZvz4dvfPQ/article-cover_image-shrink_720_1280/0/1658570085436?e=1709769600&v=beta&t=4YlnaK_7lu8cDX4EeOnLk-d-EtbgQg_hbduqKGFjnfY",
+        "img": "https://picsum.photos/seed/picsum/200/300",
         price: 3
     },
     "book4": {

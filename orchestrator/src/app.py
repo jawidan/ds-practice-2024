@@ -1,24 +1,22 @@
-import sys
 import os
-from threading import Thread
-from queue import Queue
+import sys
 from datetime import datetime
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import grpc
+from threading import Thread
+from queue import Queue
 
 # Function to append log messages to logs.txt
 def log_message(message):
     """Append a log message to logs.txt file with timestamp."""
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     log_entry = f"{timestamp} - {message}\n"
-    print("AAAAAAAAA")  # Assuming this is for debugging purposes.
+    print("Log entry: ", log_entry)  # Simplified debug print
     # Ensure the logs directory exists
     os.makedirs(os.path.dirname('logs/'), exist_ok=True)
-    print("log entry: ", log_entry)
     with open('logs/logs.txt', 'a') as log_file:
         log_file.write(log_entry)
-
 
 # gRPC stubs import setup
 FILE = __file__ if "__file__" in globals() else os.getenv("PYTHONFILE", "")
@@ -36,6 +34,10 @@ import transaction_verification_pb2 as transaction_verification
 import transaction_verification_pb2_grpc as transaction_verification_grpc
 import suggestions_pb2 as suggestions
 import suggestions_pb2_grpc as suggestions_grpc
+
+def generate_order_id():
+    """Generate a numeric OrderID based on current timestamp."""
+    return int(datetime.now().timestamp() * 1000)  # Milliseconds since epoch
 
 def greet(name="you"):
     with grpc.insecure_channel("fraud_detection:50051") as channel:
@@ -103,7 +105,9 @@ def index():
 @app.route("/checkout", methods=["POST"])
 def checkout():
     order = request.json
-    log_message(f"Transaction request received: {order}")
+    # Generate a unique numeric OrderID for the current order
+    order_id = generate_order_id()
+    log_message(f"Order ID {order_id} generated for transaction request: {order}")
     
     fraud_queue = Queue()
     verification_queue = Queue()
@@ -134,7 +138,8 @@ def checkout():
             "verification": "False",
             "orderStatus": "Fraudulent Transaction",
             "errors": [fraud_detection_response["reason"]],
-            "isFraudulent": True
+            "isFraudulent": True,
+            "orderID": order_id  # Include numeric OrderID in the response
         })
 
     if transaction_verification_response["verification"] != "True":
@@ -143,7 +148,8 @@ def checkout():
             "verification": "False",
             "orderStatus": "Transaction not verified",
             "errors": transaction_verification_response["errors"],
-            "isFraudulent": False
+            "isFraudulent": False,
+            "orderID": order_id  # Include numeric OrderID in the response
         })
 
     suggested_books_response = suggestBooks(order)
@@ -151,7 +157,7 @@ def checkout():
 
     return jsonify({
         "verification": "True",
-        "orderID": "2345",
+        "orderID": order_id,  # Include numeric OrderID in the successful response
         "orderStatus": "Approved",
         "suggestedBooks": suggested_books_response["suggestedBooks"],
         "isFraudulent": False,
@@ -161,8 +167,6 @@ def checkout():
 if __name__ == "__main__":
     log_message("Starting the Flask application")
     app.run(host="0.0.0.0", debug=True)
-
-
 
 
 
