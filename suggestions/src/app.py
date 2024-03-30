@@ -19,14 +19,14 @@ class BookSuggestionService(suggestions_grpc.BookSuggestionServiceServicer):
     def SuggestBooks(self, request, context):
         # Example of handling request based on 'name' parameter in 'items'
         # print("REEEEE",request)
-        client = OpenAI(api_key="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")
+        # client = OpenAI(api_key="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")
 
-        gptresponse = client.completions.create(
-            model="gpt-3.5-turbo-instruct",
-            prompt="Suggest one book which is relevant to " + request.name + ". And only respond the book name and author. thats it",
-        )   
+        # gptresponse = client.completions.create(
+        #     model="gpt-3.5-turbo-instruct",
+        #     prompt="Suggest one book which is relevant to " + request.name + ". And only respond the book name and author. thats it",
+        # )   
 
-        return suggestions.BookResponse(name=gptresponse.choices[0].text)
+        return suggestions.BookResponse(name="Introduction to Advanced Book Programming, by Jonathan Haddon")
        
         
 

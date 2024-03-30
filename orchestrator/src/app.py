@@ -18,6 +18,28 @@ def log_message(message):
     with open('logs/logs.txt', 'a') as log_file:
         log_file.write(log_entry)
 
+
+
+class VectorClock:
+    def __init__(self, clock=None):
+        if clock is None:
+            self.clock = {'transaction_verification': 0, 'fraud_detection': 0, 'suggestions': 0}
+        else:
+            self.clock = clock
+
+    def increment(self, service):
+        if service in self.clock:
+            self.clock[service] += 1
+
+    def get_clock(self):
+        return self.clock
+
+    @classmethod
+    def from_dict(cls, clock_dict):
+        # This now correctly passes the clock_dict to the __init__ method
+        return cls(clock=clock_dict)
+
+
 # gRPC stubs import setup
 FILE = __file__ if "__file__" in globals() else os.getenv("PYTHONFILE", "")
 utils_path = os.path.abspath(os.path.join(FILE, "../../../utils/pb/fraud_detection"))
@@ -45,15 +67,17 @@ def greet(name="you"):
         response = stub.SayHello(fraud_detection.HelloRequest(name=name))
     return response.greeting
 
-def suggestBooks(order):
+
+def suggestBooks(order, vc):
+    # Simulate vector clock increment by suggestion service
     with grpc.insecure_channel("suggestions:50053") as channel:
         stub = suggestions_grpc.BookSuggestionServiceStub(channel)
         request = suggestions.BookRequest(name=order.get("items", {})[0].get("name", ""))
         response = stub.SuggestBooks(request)
-        
-    return {"suggestedBooks": [{"title": response.name}]}
+    vc.increment('suggestions')
+    return {"suggestedBooks":[{"title": response.name}], "vc": vc.get_clock()}
 
-def detect_fraud(order):
+def detect_fraud(order, vc):
     with grpc.insecure_channel("fraud_detection:50051") as channel:
         stub = fraud_detection_grpc.FraudDetectionServiceStub(channel)
         request = fraud_detection.FraudDetectionRequest(
@@ -73,9 +97,11 @@ def detect_fraud(order):
         )
         response = stub.DetectFraud(request)
         
-    return {"isFraudulent": response.isFraudulent, "reason": response.reason}
+    
+    vc.increment('fraud_detection')
+    return {"isFraudulent": response.isFraudulent, "reason": response.reason, "vc": vc.get_clock()}
 
-def verify_transaction(order):
+def verify_transaction(order, vc):
     with grpc.insecure_channel("transaction_verification:50052") as channel:
         stub = transaction_verification_grpc.TransactionVerificationServiceStub(channel)
         response = stub.VerifyTransaction(
@@ -91,7 +117,9 @@ def verify_transaction(order):
     errors = getattr(response, "errors", None)
     errors_list = [errors] if isinstance(errors, str) else list(errors) if errors else []
     
-    return {"verification": str(response.verification), "errors": errors_list}
+    vc.increment('transaction_verification')
+    return {"verification": str(response.verification), "errors": errors_list, "vc": vc.get_clock()}
+    
 
 app = Flask(__name__)
 CORS(app)
@@ -105,69 +133,60 @@ def index():
 @app.route("/checkout", methods=["POST"])
 def checkout():
     order = request.json
-    # Generate a unique numeric OrderID for the current order
     order_id = generate_order_id()
     log_message(f"Order ID {order_id} generated for transaction request: {order}")
-    
-    fraud_queue = Queue()
-    verification_queue = Queue()
 
-    def detect_fraud_thread():
-        fraud_response = detect_fraud(order)
-        fraud_queue.put(fraud_response)
+    # Initialize Vector Clock for the order
+    vc = VectorClock()
 
-    def verify_transaction_thread():
-        verification_response = verify_transaction(order)
-        verification_queue.put(verification_response)
+    # Adjusted to reflect event ordering and vector clock updates
+    # Assuming sequential processing for simplicity; in a real scenario, you may need async handling
+    vc_data = vc.get_clock()
+    verification_response = verify_transaction(order, vc)
+    vc_data = verification_response["vc"]  # Update VC from transaction verification
 
-    fraud_thread = Thread(target=detect_fraud_thread)
-    verification_thread = Thread(target=verify_transaction_thread)
-
-    fraud_thread.start()
-    verification_thread.start()
-
-    fraud_thread.join()
-    verification_thread.join()
-
-    fraud_detection_response = fraud_queue.get()
-    transaction_verification_response = verification_queue.get()
-
-    if fraud_detection_response["isFraudulent"]:
-        log_message(f"Fraudulent transaction detected: {fraud_detection_response['reason']}")
-        return jsonify({
-            "verification": "False",
-            "orderStatus": "Fraudulent Transaction",
-            "errors": [fraud_detection_response["reason"]],
-            "isFraudulent": True,
-            "orderID": order_id  # Include numeric OrderID in the response
-        })
-
-    if transaction_verification_response["verification"] != "True":
-        log_message(f"Transaction not verified: {transaction_verification_response['errors']}")
+    if not verification_response["verification"] == "True":
+        log_message(f"Transaction not verified: {verification_response['errors']}")
         return jsonify({
             "verification": "False",
             "orderStatus": "Transaction not verified",
-            "errors": transaction_verification_response["errors"],
+            "errors": verification_response["errors"],
             "isFraudulent": False,
-            "orderID": order_id  # Include numeric OrderID in the response
+            "orderID": order_id,
+            "vectorClock": vc_data
         })
 
-    suggested_books_response = suggestBooks(order)
-    log_message(f"Suggested Books: {suggested_books_response['suggestedBooks']}")
+    fraud_response = detect_fraud(order, VectorClock.from_dict(vc_data))
+    vc_data = fraud_response["vc"]  # Update VC from fraud detection
 
+    if fraud_response["isFraudulent"]:
+        log_message(f"Fraudulent transaction detected: {fraud_response['reason']}")
+        return jsonify({
+            "verification": "False",
+            "orderStatus": "Fraudulent Transaction",
+            "errors": [fraud_response["reason"]],
+            "isFraudulent": True,
+            "orderID": order_id,
+            "vectorClock": vc_data
+        })
+
+    suggested_books_response = suggestBooks(order, VectorClock.from_dict(vc_data))
+    vc_data = suggested_books_response["vc"]  # Final VC update from suggestions
+
+    log_message(f"Suggested Books: {suggested_books_response['suggestedBooks']}")
     return jsonify({
         "verification": "True",
-        "orderID": order_id,  # Include numeric OrderID in the successful response
+        "orderID": order_id,
         "orderStatus": "Approved",
         "suggestedBooks": suggested_books_response["suggestedBooks"],
         "isFraudulent": False,
-        "fraudReason": ""
+        "fraudReason": "",
+        "vectorClock": vc_data
     }), 200
 
 if __name__ == "__main__":
     log_message("Starting the Flask application")
     app.run(host="0.0.0.0", debug=True)
-
 
 
     # Dummy
