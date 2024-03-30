@@ -18,7 +18,7 @@ def log_message(message):
     with open('logs/logs.txt', 'a') as log_file:
         log_file.write(log_entry)
 
-
+# Comment here
 
 class VectorClock:
     def __init__(self, clock=None):
