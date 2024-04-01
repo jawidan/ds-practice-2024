@@ -1,7 +1,5 @@
 # Distributed Systems @ University of Tartu
 
-Works
-
 This repository contains the initial code for the practice sessions of the Distributed Systems course at the University of Tartu.
 
 ## Getting started

@@ -9,34 +9,41 @@ from queue import Queue
 
 # Function to append log messages to logs.txt
 def log_message(message):
-    """Append a log message to logs.txt file with timestamp."""
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     log_entry = f"{timestamp} - {message}\n"
-    print("Log entry: ", log_entry)  # Simplified debug print
-    # Ensure the logs directory exists
+    print("Log entry: ", log_entry)
     os.makedirs(os.path.dirname('logs/'), exist_ok=True)
     with open('logs/logs.txt', 'a') as log_file:
         log_file.write(log_entry)
 
-# Comment here
 
 class VectorClock:
     def __init__(self, clock=None):
-        if clock is None:
-            self.clock = {'transaction_verification': 0, 'fraud_detection': 0, 'suggestions': 0}
-        else:
-            self.clock = clock
+        self.clock = clock if clock else {'transaction_verification': 0, 'fraud_detection': 0, 'suggestions': 0}
 
     def increment(self, service):
-        if service in self.clock:
-            self.clock[service] += 1
+        self.clock[service] = self.clock.get(service, 0) + 1
 
+    def to_proto(self):
+        vc_proto = fraud_detection.VectorClock()
+        for service, timestamp in self.clock.items():
+            vc_proto.timestamps[service] = timestamp
+        return vc_proto
+    
     def get_clock(self):
         return self.clock
 
+    def update_from_proto(self, vc_proto):
+        self.clock = {service: timestamp for service, timestamp in vc_proto.timestamps.items()}
+
+    @classmethod
+    def from_proto(cls, vc_proto):
+        vc = cls()
+        vc.update_from_proto(vc_proto)
+        return vc
+    
     @classmethod
     def from_dict(cls, clock_dict):
-        # This now correctly passes the clock_dict to the __init__ method
         return cls(clock=clock_dict)
 
 
@@ -77,29 +84,35 @@ def suggestBooks(order, vc):
     vc.increment('suggestions')
     return {"suggestedBooks":[{"title": response.name}], "vc": vc.get_clock()}
 
+
+
 def detect_fraud(order, vc):
+    vc.increment('fraud_detection')
+    vc_proto = vc.to_proto()  # Convert to the protobuf format
+
+    request = fraud_detection.FraudDetectionRequest(
+        user=fraud_detection.User(name=order.get("user", {}).get("name", ""), contact=order.get("user", {}).get("contact", "")),
+        creditCard=fraud_detection.CreditCard(
+            number=order.get("creditCard", {}).get("number", ""),
+            expirationDate=order.get("creditCard", {}).get("expirationDate", ""),
+            cvv=order.get("creditCard", {}).get("cvv", "")
+        ),
+        billingAddress=fraud_detection.Address(
+            street=order.get("billingAddress", {}).get("street", ""),
+            city=order.get("billingAddress", {}).get("city", ""),
+            state=order.get("billingAddress", {}).get("state", ""),
+            zip=order.get("billingAddress", {}).get("zip", ""),
+            country=order.get("billingAddress", {}).get("country", "")
+        ),
+        vector_clock=vc_proto  # Correctly assign the protobuf vector clock
+    )
     with grpc.insecure_channel("fraud_detection:50051") as channel:
         stub = fraud_detection_grpc.FraudDetectionServiceStub(channel)
-        request = fraud_detection.FraudDetectionRequest(
-            user=fraud_detection.User(name=order.get("user", {}).get("name", ""), contact=order.get("user", {}).get("contact", "")),
-            creditCard=fraud_detection.CreditCard(
-                number=order.get("creditCard", {}).get("number", ""),
-                expirationDate=order.get("creditCard", {}).get("expirationDate", ""),
-                cvv=order.get("creditCard", {}).get("cvv", "")
-            ),
-            billingAddress=fraud_detection.Address(
-                street=order.get("billingAddress", {}).get("street", ""),
-                city=order.get("billingAddress", {}).get("city", ""),
-                state=order.get("billingAddress", {}).get("state", ""),
-                zip=order.get("billingAddress", {}).get("zip", ""),
-                country=order.get("billingAddress", {}).get("country", "")
-            )
-        )
         response = stub.DetectFraud(request)
-        
-    
-    vc.increment('fraud_detection')
-    return {"isFraudulent": response.isFraudulent, "reason": response.reason, "vc": vc.get_clock()}
+    vc.update_from_proto(response.vector_clock)  # Adjust based on actual response structure
+    return {"isFraudulent": response.isFraudulent, "reason": response.reason, "vc": vc}
+
+
 
 def verify_transaction(order, vc):
     with grpc.insecure_channel("transaction_verification:50052") as channel:
@@ -135,10 +148,9 @@ def checkout():
     order = request.json
     order_id = generate_order_id()
     log_message(f"Order ID {order_id} generated for transaction request: {order}")
-
-    # Initialize Vector Clock for the order
     vc = VectorClock()
 
+    
     # Adjusted to reflect event ordering and vector clock updates
     # Assuming sequential processing for simplicity; in a real scenario, you may need async handling
     vc_data = vc.get_clock()
@@ -156,18 +168,17 @@ def checkout():
             "vectorClock": vc_data
         })
 
-    fraud_response = detect_fraud(order, VectorClock.from_dict(vc_data))
-    vc_data = fraud_response["vc"]  # Update VC from fraud detection
-
+        
+    fraud_response = detect_fraud(order, vc)
     if fraud_response["isFraudulent"]:
-        log_message(f"Fraudulent transaction detected: {fraud_response['reason']}")
+        # Handle immediate failure
         return jsonify({
             "verification": "False",
             "orderStatus": "Fraudulent Transaction",
             "errors": [fraud_response["reason"]],
             "isFraudulent": True,
             "orderID": order_id,
-            "vectorClock": vc_data
+            "vectorClock": fraud_response["vc"].clock  # Assuming direct access to the clock for simplicity
         })
 
     suggested_books_response = suggestBooks(order, VectorClock.from_dict(vc_data))

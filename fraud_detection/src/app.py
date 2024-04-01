@@ -22,18 +22,29 @@ from concurrent import futures
 
 class FraudDetectionService(fraud_detection_grpc.FraudDetectionServiceServicer):
     def DetectFraud(self, request, context):
+        # Initialize the response object
         response = fraud_detection.FraudDetectionResponse()
 
+        # Fraud detection logic (unchanged)
         if request.billingAddress.street == request.billingAddress.city == request.billingAddress.state:
             response.isFraudulent = True
             response.reason = "Billing address's street, city, and state are identical, which is suspicious."
         else:
             response.isFraudulent = False
-            response.reason = "No fraud detected "
+            response.reason = "No fraud detected"
 
+        # Update and log the vector clock
+        # This is a simplistic approach; you'll need to adapt it based on your actual logic for handling vector clocks.
+        service_id = 'fraud_detection'  # Identifier for this service
+        timestamps = request.vector_clock.timestamps if request.vector_clock else {}
+        timestamps[service_id] = timestamps.get(service_id, 0) + 1  # Increment the timestamp for this service
+        print(f"Updated Vector Clock for service {service_id}: {timestamps}")  # Example logging
+
+        # Attach the updated vector clock to the response
+        for service, timestamp in timestamps.items():
+            response.vector_clock.timestamps[service] = timestamp
 
         return response
-    
 
     
 # Create a class to define the server functions, derived from

@@ -7,8 +7,14 @@ message FraudDetectionRequest {
     User user = 1;
     CreditCard creditCard = 2;
     Address billingAddress = 3;
-    // Add more fields here as needed for expanded logic
+    VectorClock vector_clock = 4; // Added field for vector clock
 }
+
+// Define a message for the vector clock
+message VectorClock {
+  map<string, int32> timestamps = 1; // Service identifier to logical timestamp mapping
+}
+
 
 // Define a message for the user
 message User {
@@ -36,6 +42,7 @@ message Address {
 message FraudDetectionResponse {
     bool isFraudulent = 1;
     string reason = 2; // Optional reason for the decision
+    VectorClock vector_clock = 3; // Added field for vector clock
 }
 
 // Define the service with a method for fraud detection
