@@ -2,12 +2,19 @@ syntax = "proto3";
 
 package suggestions;
 
+// Define a message for VectorClock
+message VectorClock {
+    map<string, int32> timestamps = 1;
+}
+
 message BookRequest {
     string name = 1;
+    VectorClock vector_clock = 2; // Add this line
 }
 
 message BookResponse {
     string name = 1;
+    VectorClock vector_clock = 2; // Add this line
 }
 
 service BookSuggestionService {

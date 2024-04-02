@@ -13,6 +13,19 @@ class User(_message.Message):
     contact: str
     def __init__(self, name: _Optional[str] = ..., contact: _Optional[str] = ...) -> None: ...
 
+class VectorClock(_message.Message):
+    __slots__ = ("timestamps",)
+    class TimestampsEntry(_message.Message):
+        __slots__ = ("key", "value")
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: int
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[int] = ...) -> None: ...
+    TIMESTAMPS_FIELD_NUMBER: _ClassVar[int]
+    timestamps: _containers.ScalarMap[str, int]
+    def __init__(self, timestamps: _Optional[_Mapping[str, int]] = ...) -> None: ...
+
 class CreditCard(_message.Message):
     __slots__ = ("number", "expirationDate", "cvv")
     NUMBER_FIELD_NUMBER: _ClassVar[int]
@@ -46,23 +59,27 @@ class BillingAddress(_message.Message):
     def __init__(self, street: _Optional[str] = ..., city: _Optional[str] = ..., state: _Optional[str] = ..., zip: _Optional[str] = ..., country: _Optional[str] = ...) -> None: ...
 
 class TransactionVerificationRequest(_message.Message):
-    __slots__ = ("user", "creditCard", "items", "billingAddress", "termsAndConditionsAccepted")
+    __slots__ = ("user", "creditCard", "items", "billingAddress", "termsAndConditionsAccepted", "vector_clock")
     USER_FIELD_NUMBER: _ClassVar[int]
     CREDITCARD_FIELD_NUMBER: _ClassVar[int]
     ITEMS_FIELD_NUMBER: _ClassVar[int]
     BILLINGADDRESS_FIELD_NUMBER: _ClassVar[int]
     TERMSANDCONDITIONSACCEPTED_FIELD_NUMBER: _ClassVar[int]
+    VECTOR_CLOCK_FIELD_NUMBER: _ClassVar[int]
     user: User
     creditCard: CreditCard
     items: _containers.RepeatedCompositeFieldContainer[Item]
     billingAddress: BillingAddress
     termsAndConditionsAccepted: bool
-    def __init__(self, user: _Optional[_Union[User, _Mapping]] = ..., creditCard: _Optional[_Union[CreditCard, _Mapping]] = ..., items: _Optional[_Iterable[_Union[Item, _Mapping]]] = ..., billingAddress: _Optional[_Union[BillingAddress, _Mapping]] = ..., termsAndConditionsAccepted: bool = ...) -> None: ...
+    vector_clock: VectorClock
+    def __init__(self, user: _Optional[_Union[User, _Mapping]] = ..., creditCard: _Optional[_Union[CreditCard, _Mapping]] = ..., items: _Optional[_Iterable[_Union[Item, _Mapping]]] = ..., billingAddress: _Optional[_Union[BillingAddress, _Mapping]] = ..., termsAndConditionsAccepted: bool = ..., vector_clock: _Optional[_Union[VectorClock, _Mapping]] = ...) -> None: ...
 
 class TransactionVerificationResponse(_message.Message):
-    __slots__ = ("verification", "errors")
+    __slots__ = ("verification", "errors", "vector_clock")
     VERIFICATION_FIELD_NUMBER: _ClassVar[int]
     ERRORS_FIELD_NUMBER: _ClassVar[int]
+    VECTOR_CLOCK_FIELD_NUMBER: _ClassVar[int]
     verification: bool
     errors: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, verification: bool = ..., errors: _Optional[_Iterable[str]] = ...) -> None: ...
+    vector_clock: VectorClock
+    def __init__(self, verification: bool = ..., errors: _Optional[_Iterable[str]] = ..., vector_clock: _Optional[_Union[VectorClock, _Mapping]] = ...) -> None: ...

@@ -1,28 +1,20 @@
 import sys
 import os
+from datetime import datetime
 
-FILE = __file__ if "__file__" in globals() else os.getenv("PYTHONFILE", "")
-utils_path = os.path.abspath(
-    os.path.join(FILE, "../../../utils/pb/transaction_verification")
-)
+FILE = __file__ if '__file__' in globals() else os.getenv("PYTHONFILE", "")
+utils_path = os.path.abspath(os.path.join(FILE, "../../../utils/pb/transaction_verification"))
 sys.path.insert(0, utils_path)
 import transaction_verification_pb2 as transaction_verification
 import transaction_verification_pb2_grpc as transaction_verification_grpc
 
 import grpc
 from concurrent import futures
-from datetime import datetime
-
-
-
-# Create a class to define the server functions, derived from
-# transaction_verification_pb2_grpc.TransactionVerificationServicer
 
 class TransactionVerification(transaction_verification_grpc.TransactionVerificationServiceServicer):
     def VerifyTransaction(self, request, context):
         response = transaction_verification.TransactionVerificationResponse()
-
-        response.verification = True  
+        response.verification = True
 
         if not request.items:
             response.verification = False
@@ -36,7 +28,6 @@ class TransactionVerification(transaction_verification_grpc.TransactionVerificat
             response.verification = False
             response.errors.append("Credit card information is missing.")
         else:
-
             if len(request.creditCard.number) != 16:
                 response.verification = False
                 response.errors.append("Credit card number must be 16 digits long.")
@@ -50,37 +41,21 @@ class TransactionVerification(transaction_verification_grpc.TransactionVerificat
                     response.verification = False
                     response.errors.append("Credit card expiration date is invalid or has expired.")
 
+        response.vector_clock.timestamps["transaction_verification"] = request.vector_clock.timestamps.get("transaction_verification", 0) + 1
+
         return response
 
     def is_expiration_date_valid(self, expiration_date_str):
+        # Placeholder for actual implementation
         return True
-        """Check if the expiration date (format MM/YY) has not passed."""
-        try:
-            expiration_date = datetime.strptime(expiration_date_str, "%m/%Y")
-            current_date = datetime.now()
-            return expiration_date >= current_date
-        except ValueError:
-            # If there's an error parsing the date, consider it invalid
-            return False
-
-
 
 def serve():
-    # Create a gRPC server
-    server = grpc.server(futures.ThreadPoolExecutor())
-    # Add TransactionVerification
-    transaction_verification_grpc.add_TransactionVerificationServiceServicer_to_server(
-        TransactionVerification(), server
-    )
-    # Listen on port 50052
-    port = "50052"
-    server.add_insecure_port("[::]:" + port)
-    # Start the server
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    transaction_verification_grpc.add_TransactionVerificationServiceServicer_to_server(TransactionVerification(), server)
+    server.add_insecure_port('[::]:50052')
     server.start()
-    print("Server started. Listening on port 50052.")
-    # Keep thread alive
+    print("Transaction Verification Service started. Listening on port 50052.")
     server.wait_for_termination()
 
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     serve()

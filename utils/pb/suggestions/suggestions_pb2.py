@@ -14,17 +14,23 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1dsuggestions/suggestions.proto\x12\x0bsuggestions\"\x1b\n\x0b\x42ookRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\"\x1c\n\x0c\x42ookResponse\x12\x0c\n\x04name\x18\x01 \x01(\t2\\\n\x15\x42ookSuggestionService\x12\x43\n\x0cSuggestBooks\x12\x18.suggestions.BookRequest\x1a\x19.suggestions.BookResponseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1dsuggestions/suggestions.proto\x12\x0bsuggestions\"~\n\x0bVectorClock\x12<\n\ntimestamps\x18\x01 \x03(\x0b\x32(.suggestions.VectorClock.TimestampsEntry\x1a\x31\n\x0fTimestampsEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x05:\x02\x38\x01\"K\n\x0b\x42ookRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\x12.\n\x0cvector_clock\x18\x02 \x01(\x0b\x32\x18.suggestions.VectorClock\"L\n\x0c\x42ookResponse\x12\x0c\n\x04name\x18\x01 \x01(\t\x12.\n\x0cvector_clock\x18\x02 \x01(\x0b\x32\x18.suggestions.VectorClock2\\\n\x15\x42ookSuggestionService\x12\x43\n\x0cSuggestBooks\x12\x18.suggestions.BookRequest\x1a\x19.suggestions.BookResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'suggestions.suggestions_pb2', _globals)
 if _descriptor._USE_C_DESCRIPTORS == False:
   DESCRIPTOR._options = None
-  _globals['_BOOKREQUEST']._serialized_start=46
-  _globals['_BOOKREQUEST']._serialized_end=73
-  _globals['_BOOKRESPONSE']._serialized_start=75
-  _globals['_BOOKRESPONSE']._serialized_end=103
-  _globals['_BOOKSUGGESTIONSERVICE']._serialized_start=105
-  _globals['_BOOKSUGGESTIONSERVICE']._serialized_end=197
+  _globals['_VECTORCLOCK_TIMESTAMPSENTRY']._options = None
+  _globals['_VECTORCLOCK_TIMESTAMPSENTRY']._serialized_options = b'8\001'
+  _globals['_VECTORCLOCK']._serialized_start=46
+  _globals['_VECTORCLOCK']._serialized_end=172
+  _globals['_VECTORCLOCK_TIMESTAMPSENTRY']._serialized_start=123
+  _globals['_VECTORCLOCK_TIMESTAMPSENTRY']._serialized_end=172
+  _globals['_BOOKREQUEST']._serialized_start=174
+  _globals['_BOOKREQUEST']._serialized_end=249
+  _globals['_BOOKRESPONSE']._serialized_start=251
+  _globals['_BOOKRESPONSE']._serialized_end=327
+  _globals['_BOOKSUGGESTIONSERVICE']._serialized_start=329
+  _globals['_BOOKSUGGESTIONSERVICE']._serialized_end=421
 # @@protoc_insertion_point(module_scope)

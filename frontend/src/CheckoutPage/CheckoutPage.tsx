@@ -32,7 +32,7 @@ const CheckoutPage: React.FC = () => {
     const [formData, setFormData] = useState<CheckoutForm>({
         userName: 'aaa',
         userContact: 'aaa',
-        creditCardNumber: '1234556',
+        creditCardNumber: '1234123412341234',
         creditCardExpirationDate: '11/22',
         creditCardCVV: '123',
         userComment: 'vvv',

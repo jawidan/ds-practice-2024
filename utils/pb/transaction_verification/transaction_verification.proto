@@ -11,6 +11,10 @@ message User{
     string contact = 2;
 }
 
+message VectorClock {
+  map<string, int32> timestamps = 1; // Service identifier to logical timestamp mapping
+}
+
 message CreditCard{
     string number = 1;
     string expirationDate =2;
@@ -36,9 +40,11 @@ message TransactionVerificationRequest {
     repeated Item items = 3;
     BillingAddress billingAddress = 4;
     bool termsAndConditionsAccepted = 5;
+    VectorClock vector_clock = 6;
 }
 
 message TransactionVerificationResponse {
     bool verification = 1;
     repeated string errors = 2;
+    VectorClock vector_clock = 3;
 }
