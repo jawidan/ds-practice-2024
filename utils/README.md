@@ -31,12 +31,13 @@ Inside "utils/pb" folder run
 ```bash
 python -m venv venv 
 venv/scripts/activate
-python -m pip install grpcio-tools
+python3 -m pip install grpcio-tools
 
 Create transaction_verification/transaction_verification.proto
 python -m grpc_tools.protoc -I. --python_out=. --pyi_out=. --grpc_python_out=. ./transaction_verification/transaction_verification.proto
 python3 -m grpc_tools.protoc -I. --python_out=. --pyi_out=. --grpc_python_out=. ./suggestions/suggestions.proto
 python3 -m grpc_tools.protoc -I. --python_out=. --pyi_out=. --grpc_python_out=. ./fraud_detection/fraud_detection.proto
+python3 -m grpc_tools.protoc -I. --python_out=. --pyi_out=. --grpc_python_out=. ./order_queue/order_queue.proto
 ```
 
 - In xxx_grpc.py file instead of "from zzzz import xxxx as yyyy" -> "import xxxx as yyyy"

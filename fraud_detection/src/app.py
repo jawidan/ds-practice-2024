@@ -46,22 +46,6 @@ class FraudDetectionService(fraud_detection_grpc.FraudDetectionServiceServicer):
 
         return response
 
-    
-# Create a class to define the server functions, derived from
-# fraud_detection_pb2_grpc.HelloServiceServicer
-# class HelloService(fraud_detection_grpc.HelloServiceServicer):
-#     # Create an RPC function to say hello
-#     def SayHello(self, request, context):
-#         # Create a HelloResponse object
-#         response = fraud_detection.HelloResponse()
-#         # Set the greeting field of the response object
-#         response.greeting = "Hello, " + request.name
-#         # Print the greeting message
-#         print(response.greeting)
-#         # Return the response object
-#         return response
-
-
 
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))

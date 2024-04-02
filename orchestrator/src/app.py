@@ -11,10 +11,12 @@ FILE = __file__ if "__file__" in globals() else os.getenv("PYTHONFILE", "")
 utils_path = os.path.abspath(os.path.join(FILE, "../../../utils/pb/fraud_detection"))
 transaction_verification_utils_path = os.path.abspath(os.path.join(FILE, "../../../utils/pb/transaction_verification"))
 suggestions_path = os.path.abspath(os.path.join(FILE, "../../../utils/pb/suggestions"))
+order_queue_path = os.path.abspath(os.path.join(FILE, "../../../utils/pb/order_queue"))
 
 sys.path.insert(0, utils_path)
 sys.path.insert(1, transaction_verification_utils_path)
 sys.path.insert(2, suggestions_path)
+sys.path.insert(3, order_queue_path)
 
 import fraud_detection_pb2 as fraud_detection
 import fraud_detection_pb2_grpc as fraud_detection_grpc
@@ -22,6 +24,8 @@ import transaction_verification_pb2 as transaction_verification
 import transaction_verification_pb2_grpc as transaction_verification_grpc
 import suggestions_pb2 as suggestions
 import suggestions_pb2_grpc as suggestions_grpc
+import order_queue_pb2 as order_queue
+import order_queue_pb2_grpc as order_queue_grpc
 
 app = Flask(__name__)
 CORS(app)
@@ -88,6 +92,26 @@ def detect_fraud(order, vc):
     vc.update_from_proto(response.vector_clock)
     return {"isFraudulent": response.isFraudulent, "reason": response.reason, "vc": vc.get_clock()}
 
+
+def enqueue_order(order_details):
+    with grpc.insecure_channel('order_queue:50054') as channel:  # Adjust the address as needed
+        stub = order_queue_grpc.OrderQueueServiceStub(channel)
+        order_request = order_queue.OrderRequest(
+            user=order_queue.User(
+                name=order_details['user']['name'], 
+                contact=order_details['user']['contact']
+            ),
+            creditCard=order_queue.CreditCard(
+                number=order_details['creditCard']['number'], 
+                expirationDate=order_details['creditCard']['expirationDate'], 
+                cvv=order_details['creditCard']['cvv']
+            ),
+            userComment=order_details['userComment']
+            # Add other fields as necessary
+        )
+        response = stub.EnqueueOrder(order_request)
+        return response
+
 def verify_transaction(order, vc):
     vc.increment('transaction_verification')
     transaction_verification_vc_proto = vc.to_proto("transaction_verification")
@@ -113,7 +137,7 @@ def verify_transaction(order, vc):
         stub = transaction_verification_grpc.TransactionVerificationServiceStub(channel)
         response = stub.VerifyTransaction(request)
     vc.update_from_proto(response.vector_clock)
-    return {"verification": str(response.verification), "errors": response.errors, "vc": vc.get_clock()}
+    return {"verification": response.verification, "errors": response.errors, "vc": vc.get_clock()}
 
 def suggestBooks(order, vc):
     vc.increment('suggestions')
@@ -126,7 +150,7 @@ def suggestBooks(order, vc):
         stub = suggestions_grpc.BookSuggestionServiceStub(channel)
         response = stub.SuggestBooks(request)
     vc.update_from_proto(response.vector_clock)
-    return {"suggestedBooks": [{"title": "Suggested Book"}], "vc": vc.get_clock()}
+    return {"suggestedBooks": [{"title": response.name}], "vc": vc.get_clock()}
 
 @app.route("/", methods=["GET"])
 def index():
@@ -144,38 +168,56 @@ def checkout():
     order_id = generate_order_id()
     vc = VectorClock()
     print("Checking ...")
+    print("Order :", order)
+
     fraud_response = detect_fraud(order, vc)
     print(fraud_response["isFraudulent"], ". . .isFraudulent")
     if fraud_response["isFraudulent"]:
-        log_message(f"Fraudulent transaction detected: {fraud_response['reason']}")
+        log_message(f"Fraudulent transaction detected: {fraud_response['reason']}, vc :  {serialize_vector_clock(vc)} clock: {vc.get_clock()}")
         return jsonify({
             "verification": "False",
-            "orderStatus": "Fraudulent Transaction",
+            "orderStatus": "Fraudulent Transaction Detected",
             "errors": [fraud_response["reason"]],
             "isFraudulent": True,
-            "orderID": order_id  # Include numeric OrderID in the response
+            "orderID": order_id,
+            "vectorClock": serialize_vector_clock(vc)
         })
 
     verification_response = verify_transaction(order, vc)
-    if not verification_response["verification"] == "True":
+    if not verification_response["verification"]:
         # Convert Protobuf RepeatedScalarContainer to a Python list for JSON serialization
         errors_list = list(verification_response["errors"]) if verification_response["errors"] else []
+        log_message(f"Transaction verification failed with errors: {errors_list}")
         return jsonify({
             "orderID": order_id,
             "orderStatus": "Transaction Verification Failed",
             "verification": "False",
             "errors": errors_list,  # Use the converted list here
-            "vectorClock": verification_response["vc"]
+            "vectorClock": serialize_vector_clock(vc)
         })
 
+    if verification_response["verification"]:
+        # Enqueue the order for processing
+        enqueue_response = enqueue_order(order)
+        if not enqueue_response.success:
+            return jsonify({
+                "success": False, 
+                "message": "Failed to enqueue order", 
+                "details": enqueue_response.message,
+                "vectorClock": serialize_vector_clock(vc)
+            })
+
     suggested_books_response = suggestBooks(order, vc)
+    log_message("Transaction successful.")
+
     return jsonify({
-        "orderID": str(order_id),
+        "orderID": order_id,
         "orderStatus": "Transaction Successful",
-        "verification": "True",  # Ensure consistency in response format
+        "verification": "True",
         "suggestedBooks": suggested_books_response["suggestedBooks"],
         "vectorClock": serialize_vector_clock(vc)
     }), 200
+
 
 
 if __name__ == "__main__":

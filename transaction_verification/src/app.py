@@ -41,6 +41,7 @@ class TransactionVerification(transaction_verification_grpc.TransactionVerificat
                     response.verification = False
                     response.errors.append("Credit card expiration date is invalid or has expired.")
 
+        print(response.verification, " ======= RESPONSE Verification")
         response.vector_clock.timestamps["transaction_verification"] = request.vector_clock.timestamps.get("transaction_verification", 0) + 1
 
         return response
