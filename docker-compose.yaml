@@ -82,3 +82,80 @@ services:
     volumes:
       - ./utils:/app/utils
       - ./order_queue/src:/app/order_queue/src
+  order_executor_1:
+    build:
+      context: ./
+      dockerfile: ./order_executor/Dockerfile
+    ports:
+      - 50055:50055
+    environment:
+      - PYTHONUNBUFFERED=TRUE
+      - PYTHONFILE=/app/order_executor/src/app.py
+    volumes:
+      - ./utils:/app/utils
+      - ./order_executor/src:/app/order_executor/src
+  order_executor_2:
+    build:
+      context: ./
+      dockerfile: ./order_executor/Dockerfile
+    ports:
+      - 50056:50055
+    environment:
+      - PYTHONUNBUFFERED=TRUE
+      - PYTHONFILE=/app/order_executor/src/app.py
+    volumes:
+      - ./utils:/app/utils
+      - ./order_executor/src:/app/order_executor/src
+  books_database_1:
+    build:
+      context: ./
+      dockerfile: ./books_database_1/Dockerfile
+    ports:
+      - 50057:50057
+    environment:
+      - PYTHONUNBUFFERED=TRUE
+      - PYTHONFILE=/app/books_database_1/src/app.py
+    volumes:
+      - ./utils:/app/utils
+      - ./books_database_1/src:/app/books_database_1/src
+  books_database_2:
+    build:
+      context: ./
+      dockerfile: ./books_database_2/Dockerfile
+    ports:
+      - 50058:50058
+    environment:
+      - PYTHONUNBUFFERED=TRUE
+      - PYTHONFILE=/app/books_database_2/src/app.py
+    volumes:
+      - ./utils:/app/utils
+      - ./books_database_2/src:/app/books_database_2/src
+  books_database_3:
+    build:
+      context: ./
+      dockerfile: ./books_database_3/Dockerfile
+    ports:
+      - 50059:50059
+    environment:
+      - PYTHONUNBUFFERED=TRUE
+      - PYTHONFILE=/app/books_database_3/src/app.py
+    volumes:
+      - ./utils:/app/utils
+      - ./books_database_3/src:/app/books_database_3/src
+  payment_system:
+    build:
+      context: ./
+      dockerfile: ./payment_system/Dockerfile
+    ports:
+      - 50060:50060
+    environment:
+      - PYTHONUNBUFFERED=TRUE
+      - PYTHONFILE=/app/payment_system/src/app.py
+    volumes:
+      - ./utils:/app/utils
+      - ./payment_system/src:/app/payment_system/src
+  consul:
+    image: consul:1.10.4
+    command: agent -dev -client 0.0.0.0
+    ports:
+      - "8500:8500"
