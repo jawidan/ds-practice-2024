@@ -36,6 +36,7 @@ class FraudDetectionService(fraud_detection_grpc.FraudDetectionServiceServicer):
         # Update and log the vector clock
         # This is a simplistic approach; you'll need to adapt it based on your actual logic for handling vector clocks.
         service_id = 'fraud_detection'  # Identifier for this service
+        # to do ver
         timestamps = request.vector_clock.timestamps if request.vector_clock else {}
         timestamps[service_id] = timestamps.get(service_id, 0) + 1  # Increment the timestamp for this service
         print(f"Updated Vector Clock for service {service_id}: {timestamps}")  # Example logging

@@ -1,6 +1,4 @@
-#!/bin/sh
-'''exec' "/Users/javidanibrahimov/Desktop/Uni_tartu/Distributed Systems/ds_lab_2024/ds-practice-2024/utils/pb/venv/bin/python3" "$0" "$@"
-' '''
+#!/Users/javidanibrahimov/Desktop/Uni_tartu/Test/ds-practice-2024/utils/pb/venv/bin/python3
 # -*- coding: utf-8 -*-
 import re
 import sys

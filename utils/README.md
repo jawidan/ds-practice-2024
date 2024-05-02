@@ -32,12 +32,21 @@ Inside "utils/pb" folder run
 python -m venv venv 
 venv/scripts/activate
 python3 -m pip install grpcio-tools
+```
 
 Create transaction_verification/transaction_verification.proto
+```bash
 python -m grpc_tools.protoc -I. --python_out=. --pyi_out=. --grpc_python_out=. ./transaction_verification/transaction_verification.proto
 python3 -m grpc_tools.protoc -I. --python_out=. --pyi_out=. --grpc_python_out=. ./suggestions/suggestions.proto
 python3 -m grpc_tools.protoc -I. --python_out=. --pyi_out=. --grpc_python_out=. ./fraud_detection/fraud_detection.proto
 python3 -m grpc_tools.protoc -I. --python_out=. --pyi_out=. --grpc_python_out=. ./order_queue/order_queue.proto
+
+python3 -m grpc_tools.protoc -I. --python_out=. --pyi_out=. --grpc_python_out=. ./order_executor/order_executor.proto
+py -m grpc_tools.protoc -I. --python_out=. --pyi_out=. --grpc_python_out=. ./books_database_1/books_database_1.proto
+py -m grpc_tools.protoc -I. --python_out=. --pyi_out=. --grpc_python_out=. ./books_database_2/books_database_2.proto
+py -m grpc_tools.protoc -I. --python_out=. --pyi_out=. --grpc_python_out=. ./books_database_3/books_database_3.proto
+py -m grpc_tools.protoc -I. --python_out=. --pyi_out=. --grpc_python_out=. ./payment_system/payment_system.proto
+py -m grpc_tools.protoc -I. --python_out=. --pyi_out=. --grpc_python_out=. ./order_queue/order_queue.proto
 ```
 
 - In xxx_grpc.py file instead of "from zzzz import xxxx as yyyy" -> "import xxxx as yyyy"

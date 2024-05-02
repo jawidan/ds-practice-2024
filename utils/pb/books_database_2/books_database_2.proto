@@ -1,0 +1,87 @@
+syntax = "proto3";
+
+package books_database_2;
+
+service OrderService {
+    rpc CreateOrder (CreateOrderRequest) returns (CreateOrderResponse);
+    rpc PrepareOrder (PrepareOrderRequest) returns (PrepareOrderResponse);
+}
+
+service BookService {
+    rpc CreateBook (CreateBookRequest) returns (CreateBookResponse);
+    rpc GetBooks (GetBooksRequest) returns (GetBooksResponse);
+}
+
+message User{
+    string name = 1;
+    string contact = 2;
+}
+
+message Item{
+    string name = 1;
+    int32 quantity = 2;
+}
+
+message BillingAddress{
+    string street = 1;
+    string city = 2;
+    string state = 3;
+    string zip = 4;
+    string country = 5;
+}
+
+message CreateOrderRequest {
+    User user = 1;
+    repeated Item items = 2;
+    BillingAddress billingAddress = 3;
+}
+
+message CreateOrderResponse {
+    optional int32 id = 1;
+    bool success = 2;
+}
+
+message PrepareOrderRequest {
+    User user = 1;
+    repeated Item items = 2;
+    BillingAddress billingAddress = 3;
+}
+
+message PrepareOrderResponse {
+    bool success = 1;
+}
+
+message CreateBookRequest{
+    string title = 1;
+    string author = 2;
+    string description = 3;
+    string copies = 4;
+    string copiesAvailable = 5;
+    string category = 6;
+    string img = 7;
+    int32 price = 8;
+}
+
+message CreateBookResponse {
+    int32 id = 1;
+}
+
+message Book{
+    int32 id = 1;
+    string title = 2;
+    string author = 3;
+    string description = 4;
+    string copies = 5;
+    string copiesAvailable = 6;
+    string category = 7;
+    string img = 8;
+    int32 price = 9;
+}
+
+message GetBooksRequest{
+    
+}
+
+message GetBooksResponse {
+    repeated Book books = 1;
+}

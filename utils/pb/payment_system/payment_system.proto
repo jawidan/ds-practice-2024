@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package payment_system;
+
+service PaymentService {
+    rpc CheckBalance (CheckBalanceRequest) returns (CheckBalanceResponse);
+    rpc ConfirmPayment (ConfirmPaymentRequest) returns (ConfirmPaymentResponse);
+}
+
+
+message CreditCard {
+    string number = 1;
+    string expirationDate = 2;
+    string cvv = 3;
+}
+
+message CheckBalanceRequest {
+    int32 amount = 1;
+    CreditCard card = 2;
+}
+
+message CheckBalanceResponse {
+    bool success = 1;
+}
+
+message ConfirmPaymentRequest {
+    int32 amount = 1;
+    CreditCard card = 2;
+}
+
+message ConfirmPaymentResponse {
+    bool success = 1;
+}

@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package orderexecutor;
+
+service OrderExecutorService {
+  rpc DequeueOrder(DequeueRequest) returns (DequeueResponse);
+}
+
+message DequeueRequest {
+  // Request fields if needed
+}
+
+message DequeueResponse {
+  string message = 1;
+}
